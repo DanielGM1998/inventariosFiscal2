@@ -34,19 +34,20 @@ Class PDF extends TCPDF{
 		$this->Cell(0, 10, utf8_decode($this->titulo), 0, 1, 'R');
 		$this->Cell(0, 10, $subtitulo, 0, 1, 'R');
 		$this->Ln(5);
-        $this->Cell(5, 0, '', 0, 0, 'L');
+        $this->setX(15);
         $this->Cell(88, 0, '', 'B', 0, 'L');
 		$this->Cell(10, 0, '', 0, 0, 'L');
 		$this->Cell(88, 0, '', 'B', 1, 'L');
 		$this->Ln(1);
 		$this->SetFont(PDF_FONT_NAME_MAIN, 'B', 10);
-        $this->SetX(15);
-		$this->Cell(60, 5, 'DONADOR', 0, 0, 'C');
-        $this->Cell(28, 5, 'PESO TOTAL', 0, 0, 'L');
+		$this->Cell(45, 5, 'DONADOR', 0, 0, 'C');
+        $this->Cell(32, 5, 'PESO TOTAL', 0, 0, 'L');
+        $this->Cell(25, 5, 'VALOR', 0, 0, 'L');
         $this->Cell(10, 5, '', 0, 0, 'L');
-        $this->Cell(60, 5, 'DONADOR', 0, 0, 'C');
-		$this->Cell(28, 5, 'PESO TOTAL', 0, 1, 'C');
-        $this->Cell(5, 0, '', 0, 0, 'L');
+        $this->Cell(30, 5, 'DONADOR', 0, 0, 'C');
+		$this->Cell(33, 5, 'PESO TOTAL', 0, 0, 'C');
+        $this->Cell(20, 5, 'VALOR', 0, 1, 'L');
+        $this->setX(15);
 		$this->Cell(88, 0, '', 'T', 0, 'L');
 		$this->Cell(10, 0, '', 0, 0, 'L');
 		$this->Cell(88, 0, '', 'T', 1, 'L');
@@ -80,6 +81,8 @@ Class PDF extends TCPDF{
     $cve = '';
     $peso = 0;
     $pesoTot = 0;
+    $valor = 0;
+    $valorTot = 0;
     $arrCve = array('AA' => 'AMBA ABARROTES', 
                     'AP' => 'AMBA PERECEDEROS', 
                     'BA' => 'BANCOS ABARROTES', 
@@ -112,31 +115,41 @@ Class PDF extends TCPDF{
     $arrCves[] = $arrAct;
 
     $arrFinal = array(
-        array('clavei' => 'titulo', 
-              'provei' => $arrCve[$arrCves[0][0]->clave],
-              'pesoti' => ''
-              )
+                array('clavei' => 'titulo', 
+                      'provei' => $arrCve[$arrCves[0][0]->clave],
+                      'proveii' => $arrCve[$arrCves[0][0]->clave],
+                      'pesoti' => '',
+                      'valorti' => ''
+                    )
                 );
                 
     $lnIzq = count($arrCves[0]);
     $l = 1;
     $pesot = 0;
+    $valort = 0;
     
     foreach ($arrCves[0] as $reg) {
         $regFinal = array(  'clavei' => $reg->clave, 
 					        'provei' => $reg->proveedor, 
-					        'pesoti' => number_format($reg->peso_total,3));
+                            'proveii' => $reg->proveedor, 
+					        'pesoti' => number_format($reg->peso_total,3),
+                            'valorti' => number_format($reg->valor_total,3));
         $arrFinal[] = $regFinal;
         $pesot = $pesot + str_replace(',', '', $reg->peso_total);
+        $valort = $valort + str_replace(',', '', $reg->valor_total);
         $l = $l + 1;
     }
 
     $arrFinal[] = array('clavei' => 'total', 
 					  'provei' => number_format($pesot,3), 
+                      'proveii' => number_format($valort,3), 
 					  'pesoti' => '', 
+                      'valorti' => '', 
 					  'claved' => '', 
 					  'proved' => '', 
-					  'pesotd' => ''
+                      'provedd' => '', 
+					  'pesotd' => '',
+                      'valortd' => ''
 					  );
                       //echo json_encode($arrFinal); exit;
 
@@ -144,11 +157,14 @@ Class PDF extends TCPDF{
     $lnIzq = $lnIzq + 2;
 
     $pesot = 0;
+    $valort = 0;
 //    echo json_encode($arrCve[$arrCves[1][0]->clave]); exit;
     if (count($arrCves) > 1) {
         $arrFinal[0]['claved'] = 'titulo';
         $arrFinal[0]['proved'] = $arrCve[$arrCves[1][0]->clave];
+        $arrFinal[0]['provedd'] = $arrCve[$arrCves[1][0]->clave];
         $arrFinal[0]['pesotd'] = '';
+        $arrFinal[0]['valortd'] = '';
     
         $lnDer = count($arrCves[1]);
         $i = 1;
@@ -156,57 +172,78 @@ Class PDF extends TCPDF{
         foreach ($arrCves[1] as $reg) {
             $arrFinal[$i]['claved'] = $reg->clave;
             $arrFinal[$i]['proved'] = $reg->proveedor;
+            $arrFinal[$i]['provedd'] = $reg->proveedor;
             $arrFinal[$i]['pesotd'] = number_format($reg->peso_total,3);
+            $arrFinal[$i]['valortd'] = number_format($reg->valor_total,3);
             $i = $i + 1;
             $pesot = $pesot + str_replace(',', '', $reg->peso_total);
+            $valort = $valort + str_replace(',', '', $reg->valor_total);
         }
         $arrFinal[$i]['claved'] = 'total';
         $arrFinal[$i]['proved'] = number_format($pesot,3);
+        $arrFinal[$i]['provedd'] = number_format($valort,3);
         $arrFinal[$i]['pesotd'] = '';
+        $arrFinal[$i]['valortd'] = '';
         $i = $i + 1;
         $pesot = 0;
+        $valort = 0;
         $lnDer = $lnDer + 2;
     }
 
     for ($j=2; $j<count($arrCves) ; $j++) { 
         $pesot = 0;
+        $valort = 0;
         if ($lnIzq < $lnDer) {
             $lnIzq = $lnIzq + count($arrCves[$j]) + 2;
     
             $arrFinal[$l]['clavei'] = 'titulo';
             $arrFinal[$l]['provei'] = $arrCve[$arrCves[$j][0]->clave];
+            $arrFinal[$l]['proveii'] = $arrCve[$arrCves[$j][0]->clave];
             $arrFinal[$l]['pesoti'] = '';
+            $arrFinal[$l]['valorti'] = '';
             $l = $l + 1;
             
             foreach ($arrCves[$j] as $reg) {
                 $arrFinal[$l]['clavei'] = $reg->clave;
                 $arrFinal[$l]['provei'] = $reg->proveedor;
+                $arrFinal[$l]['proveii'] = $reg->proveedor;
                 $arrFinal[$l]['pesoti'] = number_format($reg->peso_total,3);
+                $arrFinal[$l]['valorti'] = number_format($reg->valor_total,3);
                 $l = $l + 1;
                 $pesot = $pesot + str_replace(',', '', $reg->peso_total);
+                $valort = $valort + str_replace(',', '', $reg->valor_total);
             }
             $arrFinal[$l]['clavei'] = 'total';
             $arrFinal[$l]['provei'] = number_format($pesot,3);
+            $arrFinal[$l]['proveii'] = number_format($valort,3);
             $arrFinal[$l]['pesoti'] = '';
+            $arrFinal[$l]['valorti'] = '';
             $l = $l + 1;
         }else{
             $lnDer = $lnDer + count($arrCves[$j]);
     
             $arrFinal[$i]['claved'] = 'titulo';
             $arrFinal[$i]['proved'] = $arrCve[$arrCves[$j][0]->clave];
+            $arrFinal[$i]['provedd'] = $arrCve[$arrCves[$j][0]->clave];
             $arrFinal[$i]['pesotd'] = '';
+            $arrFinal[$i]['valortd'] = '';
             $i = $i + 1;
             
             foreach ($arrCves[$j] as $reg) {
                 $arrFinal[$i]['claved'] = $reg->clave;
                 $arrFinal[$i]['proved'] = $reg->proveedor;
+                $arrFinal[$i]['provedd'] = $reg->proveedor;
                 $arrFinal[$i]['pesotd'] = number_format($reg->peso_total,3);
+                $arrFinal[$i]['valortd'] = number_format($reg->valor_total,3);
                 $i = $i + 1;
                 $pesot = $pesot + str_replace(',', '', $reg->peso_total);
+                $valort = $valort + str_replace(',', '', $reg->valor_total);
             }
             $arrFinal[$i]['claved'] = 'total';
             $arrFinal[$i]['proved'] = number_format($pesot,3);
+            $arrFinal[$i]['provedd'] = number_format($valort,3);
             $arrFinal[$i]['pesotd'] = '';
+            $arrFinal[$i]['valortd'] = '';
             $i = $i + 1;
             $lnDer = $lnDer + 2;
         }
@@ -220,13 +257,17 @@ Class PDF extends TCPDF{
             if ($line['clavei'] == 'titulo') {
                 $miReporte->Cell(88, 5, $line['provei'], 0, 0, 'L', $relleno);
             }else if ($line['clavei'] == 'total') {
-                $miReporte->Cell(60, 5, '', 0, 0, 'L', $relleno);
+                $miReporte->Cell(32, 5, '', 0, 0, 'L', $relleno);
                 $miReporte->Cell(28, 5, $line['provei'], 0, 0, 'R', $relleno);
+                $miReporte->Cell(28, 5, $line['proveii'], 0, 0, 'R', $relleno); /////////// total negrita de valor izquierda
                 $pesoTot = $pesoTot + str_replace(',', '', $line['provei']);
+                $valorTot = $valorTot + str_replace(',', '', $line['proveii']);
             }else{
-                $miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 8);
-                $miReporte->Cell(60, 5, $line['provei'], 0, 0, 'L', $relleno);
+                $miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 6.5);
+                $miReporte->Cell(32, 5, $line['provei'], 0, 0, 'L', $relleno);
+                $miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 9);
                 $miReporte->Cell(28, 5, $line['pesoti'], 0, 0, 'R', $relleno);
+                $miReporte->Cell(28, 5, $line['valorti'], 0, 0, 'R', $relleno); ///////////// izquierda valor normal
             }
         }else{
             $miReporte->Cell(88, 5, '', 0, 0, 'L', $relleno);
@@ -239,13 +280,17 @@ Class PDF extends TCPDF{
             if ($line['claved'] == 'titulo') {
                 $miReporte->Cell(88, 5, $line['proved'], 0, 1, 'L', $relleno);
             }else if ($line['claved'] == 'total') {
-                $miReporte->Cell(60, 5, '', 0, 0, 'L', $relleno);
-                $miReporte->Cell(28, 5, $line['proved'], 0, 1, 'R', $relleno);
+                $miReporte->Cell(30, 5, '', 0, 0, 'L', $relleno);
+                $miReporte->Cell(28, 5, $line['proved'], 0, 0, 'R', $relleno);
+                $miReporte->Cell(28, 5, $line['provedd'], 0, 1, 'R', $relleno); /////////////////// derecha total negrita de valor
                 $pesoTot = $pesoTot + str_replace(',', '', $line['proved']);
+                $valorTot = $valorTot + str_replace(',', '', $line['provedd']);
             }else{
-                $miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 8);
-                $miReporte->Cell(60, 5, $line['proved'], 0, 0, 'L', $relleno);
-                $miReporte->Cell(28, 5, $line['pesotd'], 0, 1, 'R', $relleno);
+                $miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 6.5);
+                $miReporte->Cell(32, 5, $line['proved'], 0, 0, 'L', $relleno);
+                $miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 9);
+                $miReporte->Cell(28, 5, $line['pesotd'], 0, 0, 'R', $relleno);
+                $miReporte->Cell(28, 5, $line['valortd'], 0, 1, 'R', $relleno); ///////// derecha valor normal
             }
         }else{
             $miReporte->Cell(88, 5, '', 0, 1, 'L', $relleno);
@@ -263,6 +308,12 @@ $miReporte->Cell(88, 5, 'TOTAL ENTRADAS:', 0, 0, 'R');
 $miReporte->Cell(10, 5, '', 0, 0, 'C');
 $miReporte->SetFont(PDF_FONT_NAME_MAIN, 'B', 13);
 $miReporte->Cell(88, 5, number_format($pesoTot,3), 0, 1, 'L');
+
+$miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 13);
+$miReporte->Cell(88, 5, 'VALOR TOTAL:', 0, 0, 'R');
+$miReporte->Cell(10, 5, '', 0, 0, 'C');
+$miReporte->SetFont(PDF_FONT_NAME_MAIN, 'B', 13);
+$miReporte->Cell(88, 5, number_format($valorTot,3), 0, 1, 'L'); /////////// valor total
 $miReporte->Output();
 exit();
 ?>

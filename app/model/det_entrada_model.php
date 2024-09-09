@@ -237,7 +237,7 @@
 			}
 			return $this->db->getPdo()->query(
 				"SELECT $this->tableProv.clave, CONCAT($this->tableProv.nombre, ' ', $this->tableProv.apellidos) as proveedor, 
-				SUM(replace($this->tableE.peso_total,',','')) as peso_total
+				SUM(replace($this->tableE.peso_total,',','')) as peso_total, SUM(REPLACE(valor,',','')) AS valor_total
 				FROM $this->tableE, $this->tableProv
 				WHERE $this->tableProv.id_proveedor = $this->tableE.fk_proveedor
 				AND $this->tableE.estado = 1

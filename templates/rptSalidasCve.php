@@ -298,7 +298,7 @@ Class PDF extends TCPDF{
     
     $miReporte->Ln(5);
     $miReporte->SetFont(PDF_FONT_NAME_MAIN, '', 13);
-    $miReporte->Cell(88, 5, 'TOTAL ENTRADAS:', 0, 0, 'R');
+    $miReporte->Cell(88, 5, 'TOTAL SALIDAS:', 0, 0, 'R');
     $miReporte->Cell(10, 5, '', 0, 0, 'C');
     $miReporte->SetFont(PDF_FONT_NAME_MAIN, 'B', 13);
     $miReporte->Cell(88, 5, number_format($pesoTot,3), 0, 1, 'L');

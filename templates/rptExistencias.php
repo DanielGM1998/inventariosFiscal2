@@ -18,7 +18,8 @@ Class PDF extends TCPDF{
         $mesStr = array('',' de Enero de ',' de Febrero de ',' de Marzo de ',' de Abril de ', 
 				' de Mayo de ',' de Junio de ',' de Julio de ',' de Agosto de ', 
 				' de Septiembre de ',' de Octubre de ',' de Noviembre de ',' de Diciembre de ');
-        $subtitulo = "Al ".date('d').$mesStr[date('n')].date('Y H:i:s');
+        //$subtitulo = "Al ".date('d').$mesStr[date('n')].date('Y H:i:s');
+        $subtitulo = "Al 31 de enero de 2024 ";
 
 		$this->Ln(20);
 		$this->SetFont(PDF_FONT_NAME_MAIN, 'B', 13);

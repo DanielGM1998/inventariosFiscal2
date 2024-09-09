@@ -10,6 +10,7 @@ Class PDF extends TCPDF{
     private $finicio = "";
     private $ffin = "";
     private $ttotal = 0;
+    private $ttotalValor = 0;
 
     public function setTitulo($tittle, $cveprov, $finicio, $ffin){
         $this->titulo=$tittle;
@@ -84,6 +85,7 @@ foreach($registros as $prod){
 		$miReporte->Cell(22, 5, $prod->valor, 0, 0, 'C', $relleno);
 		$miReporte->Cell(25, 5, number_format($prod->peso,3), 0, 0, 'C', $relleno);
         $this->ttotal = $this->ttotal + $prod->peso;
+        $this->ttotalValor = $this->ttotalValor + $prod->valor;
 		$miReporte->Cell(30, 5, $prod->nota_entrada, 0, 1, 'C', $relleno);
 		$contador = $contador + 1;
 }
@@ -91,7 +93,9 @@ foreach($registros as $prod){
 $miReporte->Cell(250, 0, '', 'T', 1, 'L');
 $miReporte->Ln(5);
 $miReporte->SetFont(PDF_FONT_NAME_MAIN, 'B', 12);
-$miReporte->Cell(200, 5, 'TOTAL: ', 0, 0, 'R');
+$miReporte->Cell(170, 5, 'VALOR TOTAL: ', 0, 0, 'R');
+$miReporte->Cell(60, 5, number_format($this->ttotalValor,3), 0, 1, 'L');
+$miReporte->Cell(200, 5, 'KILOGRAMOS TOTAL: ', 0, 0, 'R');
 $miReporte->Cell(60, 5, number_format($this->ttotal,3), 0, 0, 'L');
 $miReporte->Output();
 exit();

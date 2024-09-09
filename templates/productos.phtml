@@ -192,7 +192,7 @@
 		$(function() {
 			$apiUrl = '<?= URL_API ?>producto/';
 			$('#mnu-prod').addClass('active');
-
+			
 			document.getElementById('item-esDespensa').addEventListener('change', function() {
 				const paqueteDiv = document.getElementById('paquete');
 				if (this.checked) {
@@ -316,7 +316,7 @@
 					ide = $(elem).attr('id').replace('item-','');
 					data[ide] = $.trim($(elem).val());
 				});
-
+				
 				data['esDespensa'] = $('#item-esDespensa').prop('checked') ? 1 : 0;
 				data['contenido'] = $('#item-esDespensa').prop('checked') ? data['contenido'] : '';
 

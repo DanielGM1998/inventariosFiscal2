@@ -64,6 +64,7 @@
 			$this->response = new Response();
 			$this->response->state = $this->model->transaction->iniciaTransaccion();
 			$parsedBody = $request->getParsedBody();
+			//$fecha=date("Y-m-d");
 			$fecha=$parsedBody['fecha'];
 			$_fk_cliente = $parsedBody['fk_cliente'];
 			$_cajero = $parsedBody['fk_cajero'];
@@ -152,7 +153,7 @@
                         'entradas'=>'0',
                         'salidas'=>'0',
                         'final'=>$_final,
-						'fecha'=>$fecha
+                        'fecha'=>$fecha
                     ];
                     $new_kardex = $this->model->kardex->add($dataKardex);
                     if(!$new_kardex->response) {

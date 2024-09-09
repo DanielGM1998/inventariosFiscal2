@@ -156,7 +156,7 @@
 		$this->get('stockByClave/', function($request, $response, $arguments) {
 			return $response->withJson($this->model->producto->stockByClave());
 		});
-
+		
 		// Obtener stock por clave
 		$this->get('stockByClave2/{fecha}', function($request, $response, $arguments) {
 			return $response->withJson($this->model->producto->stockByClave2($arguments['fecha']));
@@ -170,7 +170,7 @@
         	$params['registros'] = $stock;
 			return $this->view->render($response, 'rptExistencias.php', $params);
 		});
-
+		
 		// Obtener stock por clave (pdf)
 		$this->get('stockByClave2/print/{fecha}', function($request, $response, $arguments) {
 			$stock = $this->model->producto->stockByClave2($arguments['fecha']);
@@ -264,7 +264,6 @@
 					$seg_log->state = $this->model->transaction->regresaTransaccion(); 
 					return $response->withJson($seg_log);
 				}
-
 				if($parsedBody['esDespensa']==1){
 					$del_producto_paquete = $this->model->producto_paquete->del($producto_id);
 					if($del_producto_paquete->response){
@@ -291,7 +290,6 @@
 							}
 					}
 				}
-
 				$producto->SetResponse(true, 'Producto actualizado');
 			}else{
 				$producto->state = $this->model->transaction->regresaTransaccion(); 

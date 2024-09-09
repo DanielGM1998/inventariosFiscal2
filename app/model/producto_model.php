@@ -225,7 +225,7 @@
 			->fetchAll();
 			return $arr;
 		}
-
+		
 		// Obtener stock por clave
 		public function stockByClave2($fecha) {
 
@@ -244,7 +244,7 @@
 
 		// Agregar producto
 		public function add($data) {
-			date_default_timezone_set('America/Mexico_City');
+		    date_default_timezone_set('America/Mexico_City');
             $data['fecha_modificacion'] = date('Y-m-d H:i:s');
 			try{
 				$this->response->result = $this->db
@@ -276,7 +276,7 @@
 
 		// Editar producto
 		public function edit($data, $id) {
-			date_default_timezone_set('America/Mexico_City');
+		    date_default_timezone_set('America/Mexico_City');
 			$data['fecha_modificacion'] = date('Y-m-d H:i:s');
 			try{
 				$this->response->result = $this->db

@@ -451,14 +451,14 @@ use Envms\FluentPDO\Literal;
 				->fetchAll();
 			return $this->response->SetResponse(true);
 		} 
-
+//baceh2022_beneficiarios
 		public function getBeneficiario($cred){
 			$this->response->result = $this->db
 				->from('baceh2022_beneficiarios.cat_titular')
 				->select(null)->select('id_titular, id_integrante, CONCAT(nombre," ",apaterno," ",amaterno) AS titular')
 				->innerJoin('baceh2022_beneficiarios.cat_integrante ON fk_titular = id_titular AND parentesco = "TITULAR"')
 				->where("credencial LIKE '%$cred'")
-				//->where('baceh2022_beneficiarios.cat_titular.estatus', 1)
+				//->where('beneficiarios.cat_titular.estatus', 1)
 				->fetch();
 
 			if($this->response->result) return $this->response->SetResponse(true);

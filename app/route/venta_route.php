@@ -481,7 +481,7 @@
 			$resultado = $this->model->venta->getRptVentasFinal($arguments['inicio'], $arguments['fin']);
 			$array1 = array();
 			foreach($resultado as $reg){
-				$array1 [] = $reg->fk_producto;
+			    $array1 [] = $reg->fk_producto;
 				$prod = $this->model->producto->get($reg->fk_producto)->result;
 				$reg->producto = $prod->descripcion;
 				$reg->pesou = $prod->peso;
@@ -585,13 +585,13 @@
 		// Obtener reporte de ventas entre fechas FINAL (pdf)
 		$this->get('rptVentasFinal/print/{inicio}/{fin}', function($request, $response, $arguments) {
 			$resultado = $this->model->venta->getRptVentasFinal($arguments['inicio'], $arguments['fin']);
-
+			
 			$array1 = array();
-
+			
 			foreach($resultado as $reg){
-
-				$array1 [] = $reg->fk_producto;
-
+			    
+			    $array1 [] = $reg->fk_producto;
+			    
 				$prod = $this->model->producto->get($reg->fk_producto)->result;
 				$reg->producto = $prod->descripcion;
 				$reg->pesou = $prod->peso;
@@ -647,7 +647,7 @@
 					$reg->final = $finall;
 				}
 			}
-
+			
 			$fecha = date("d-m-Y");
 			$fecha2 = date("Y-m-d");
 			if($arguments['inicio'] == $fecha2 && $arguments['fin'] == $fecha2){
@@ -776,7 +776,7 @@
 		$this->get('ticket/{id}', function($req, $res, $args){
 			$venta = $this->model->venta->get($args['id'])->result;
 			$detalles = $this->model->det_venta->getByVenta($args['id'])->result;
-
+			
 			foreach ($detalles as $item) {
 				$contenido = $this->model->producto_paquete->get($item->fk_producto, $item->fecha_modificacion);
 				if($contenido->response){

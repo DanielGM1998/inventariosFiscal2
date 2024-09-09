@@ -198,7 +198,7 @@
 			}
 			return $this->db->getPdo()->query(
 				"SELECT DATE_FORMAT($this->tableS.fecha,'%d-%m-%Y') AS fecha, $this->tableProd.descripcion AS producto, 
-				$this->tableProd.peso AS pesou, $this->table.cantidad, $this->table.peso, CONCAT($this->tableCli.nombre, ' ', $this->tableCli.apellidos) AS cliente, 
+				$this->tableProd.peso AS pesou, $this->table.cantidad, $this->table.peso, $this->table.importe, CONCAT($this->tableCli.nombre, ' ', $this->tableCli.apellidos) AS cliente, 
 				CONCAT($this->tableProv.nombre, ' ', $this->tableProv.apellidos) AS proveedor 
 				FROM $this->table, $this->tableProd, $this->tableS, $this->tableCli, $this->tableProv 
 				WHERE 

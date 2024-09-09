@@ -203,7 +203,6 @@
 									<th>Cajero</th>
 									<th class="text-center">Tickets</th>
 									<th class="text-center">Cancelados</th>
-									<th class="text-center">Mermas</th>
 								</tr>
 							</thead>
 							<tbody></tbody>
@@ -212,7 +211,6 @@
 									<th class="text-right">TOTALES</th>
 									<th class="text-center">Tickets</th>
 									<th class="text-center">Cancelados</th>
-									<th class="text-center">Mermas</th>
 								</tr>
 							</tfoot>
 						</table>
@@ -590,8 +588,7 @@
 						if($('#item-fk_usuario').val() != 0){
 							$('#det-fk_proveedor').empty();
 							blockPage();
-							//$.get($apiUrl.replace('venta','producto')+"getByCajero/"+cajero+"/"+cod, 
-							$.get('<?= URL_API ?>producto/'+"getByCajero/"+cajero+"/"+cod, 
+							$.get($apiUrl.replace('venta','producto')+"getByCajero/"+cajero+"/"+cod, 
 								function (resp) {
 									if(resp.result.length){
 										$.each(resp.result, function (index, prod) { 
@@ -787,12 +784,10 @@
 							 tr.append('<td>'+item.nomcom+'</td>');
 							 tr.append('<td class="text-center">'+item.tickets+'</td>');
 							 tr.append('<td class="text-center">'+item.cancelados+'</td>');
-							 tr.append('<td class="text-center">'+item.mermas+'</td>');
 							 $('#tbl-tickets tbody').append(tr);
 						});
 						$('#tbl-tickets tfoot th:eq(1)').html(data.tickets);
 						$('#tbl-tickets tfoot th:eq(2)').html(data.cancelados);
-						$('#tbl-tickets tfoot th:eq(3)').html(data.mermas);
 						$('#frm-tickets').modal('show');
 						$.unblockUI();
 					},

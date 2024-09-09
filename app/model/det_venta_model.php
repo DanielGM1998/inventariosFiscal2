@@ -24,6 +24,7 @@
 				->from($this->table)
 				->innerJoin('cat_producto ON id_producto = fk_producto')
 				->innerJoin('cat_proveedor ON id_proveedor = fk_proveedor')
+				//->select(null)->select("$this->table.id_det_venta, $this->table.fk_venta, $this->table.fk_producto, $this->table.cantidad, $this->table.peso, $this->table.importe, 
 				->select(null)->select("$this->table.id_det_venta, $this->table.fk_venta, $this->table.fk_producto, $this->table.cantidad, $this->table.peso, $this->table.importe, $this->table.fecha_modificacion,
 				cat_producto.codigo_barras, cat_producto.descripcion AS producto, CONCAT(nombre, ' ', apellidos) AS proveedor, cat_producto.precio")
 				->where('fk_venta', $id)
