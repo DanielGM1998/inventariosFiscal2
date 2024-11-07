@@ -4,11 +4,11 @@
 	ini_set('display_errors',1);
 
 	if(!defined('SITE_NAME')) define('SITE_NAME', 'Fiscal');
-	if(!defined('URL_ROOT')) define('URL_ROOT',  'http://localhost/inventariosFiscal/public');
-	if(!defined('SITE_ROOT')) define('SITE_ROOT',  'http://localhost/inventariosFiscal/public');
-	if(!defined('URL_API')) define('URL_API',  'http://localhost/inventariosFiscal/public/');
-	if(!defined('URL_IMG_DEFAULT'))	define('URL_IMG_DEFAULT',  'http://localhost/inventariosFiscal/public/assets/image/no_imagen.jpg');
-	if(!defined('URL_DATA')) define('URL_DATA',  'http://localhost/inventariosFiscal/data/');
+	if(!defined('URL_ROOT')) define('URL_ROOT',  'http://localhost/inventariosFiscal2/public');
+	if(!defined('SITE_ROOT')) define('SITE_ROOT',  'http://localhost/inventariosFiscal2/public');
+	if(!defined('URL_API')) define('URL_API',  'http://localhost/inventariosFiscal2/public/');
+	if(!defined('URL_IMG_DEFAULT'))	define('URL_IMG_DEFAULT',  'http://localhost/inventariosFiscal2/public/assets/image/no_imagen.jpg');
+	if(!defined('URL_DATA')) define('URL_DATA',  'http://localhost/inventariosFiscal2/data/');
 	if(!defined('HOMEPAGE')) define('HOMEPAGE',  'usuarios');
 
 	if (!isset($_SESSION)) session_start();
