@@ -104,118 +104,134 @@
 		// Cancelar venta
 		$this->put('cancel/{venta}', function($request, $response, $arguments) {
 			$this->model->transaction->iniciaTransaccion();
-			$infoVenta = $this->model->venta->get($arguments['venta'])->result;
-            $fecha = substr($infoVenta->fecha, 0,10);
-			$cajero = $infoVenta->fk_usuario;
-			$detVent = $this->model->det_venta->getByVenta($arguments['venta'])->result;
-            $count=count($detVent);
-			for($x=0;$x<$count;$x++){
-                $cant = $detVent[$x]->cantidad;
-                $prod = $detVent[$x]->fk_producto;
-                $stocktienditasum = $this->model->producto->stockTienditaSum($cant, $prod);
-				if(!$stocktienditasum->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($stocktienditasum); 
-				}
-				$salidasrest = $this->model->kardex_tiendita->salidasRest($cant, $prod, $fecha, $cajero);
-				if(!$salidasrest->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($salidasrest); 
-				}
-				$this->model->kardex_tiendita->arreglaKardex($prod, $fecha, $cajero);
-            }
-			$CancelaVenta=$this->model->venta->del($arguments['venta']);
-			if($CancelaVenta){
-				$seg_log = $this->model->seg_log->add('Cancelar venta', $arguments['venta'], 'venta_tiendita'); 
-					if(!$seg_log->response) {
-						$seg_log->state = $this->model->transaction->regresaTransaccion(); 
-						return $response->withJson($seg_log);
+			if(!isset($_SESSION['usuario'])){
+				$respuesta=new Response();
+				$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+				$respuesta->SetResponse(false,"Expiro sesión");
+				$respuesta->sesion = 0;
+				return $response->withJson($respuesta);
+			}else{
+				$infoVenta = $this->model->venta->get($arguments['venta'])->result;
+				$fecha = substr($infoVenta->fecha, 0,10);
+				$cajero = $infoVenta->fk_usuario;
+				$detVent = $this->model->det_venta->getByVenta($arguments['venta'])->result;
+				$count=count($detVent);
+				for($x=0;$x<$count;$x++){
+					$cant = $detVent[$x]->cantidad;
+					$prod = $detVent[$x]->fk_producto;
+					$stocktienditasum = $this->model->producto->stockTienditaSum($cant, $prod);
+					if(!$stocktienditasum->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($stocktienditasum); 
 					}
+					$salidasrest = $this->model->kardex_tiendita->salidasRest($cant, $prod, $fecha, $cajero);
+					if(!$salidasrest->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($salidasrest); 
+					}
+					$this->model->kardex_tiendita->arreglaKardex($prod, $fecha, $cajero);
+				}
+				$CancelaVenta=$this->model->venta->del($arguments['venta']);
+				if($CancelaVenta){
+					$seg_log = $this->model->seg_log->add('Cancelar venta', $arguments['venta'], 'venta_tiendita'); 
+						if(!$seg_log->response) {
+							$seg_log->state = $this->model->transaction->regresaTransaccion(); 
+							return $response->withJson($seg_log);
+						}
+				}
+				$this->model->transaction->confirmaTransaccion();
+				return $response->withJson($CancelaVenta);
 			}
-			$this->model->transaction->confirmaTransaccion();
-			return $response->withJson($CancelaVenta);
 		});
 
 		// Agregar venta
 		$this->post('add/', function($request, $response, $arguments) {
 			$this->response = new Response();
 			$this->response->state = $this->model->transaction->iniciaTransaccion();
-			$parsedBody = $request->getParsedBody();
-			$fecha = date("Y-m-d");
-			$_peso_total = $parsedBody['peso_total'];
-			$tipo = $parsedBody['tipo'];
-			$institucion = '';//$parsedBody['institucion'];
-			$_usuario = $parsedBody['fk_usuario'];
-			$_total = $parsedBody['total'];
-			$beneficiario = $parsedBody['beneficiario'];
-            $data = [
-				'peso_total'=>$_peso_total,
-				'tipo'=>$tipo,
-                'institucion'=>$institucion,
-                'fk_usuario'=>$_usuario,
-				'total'=>$_total,
-				'beneficiario'=>$beneficiario
-			];
-			$resVenta =  $this->model->venta->add($data);
-			$_fk_venta = $resVenta->result;
-			if($_fk_venta){
-				$seg_log = $this->model->seg_log->add('Agregar venta', $_fk_venta, 'venta_tiendita'); 
-					if(!$seg_log->response) {
-						$seg_log->state = $this->model->transaction->regresaTransaccion(); 
-						return $response->withJson($seg_log);
-					}
-			}
-			$detalles = $parsedBody['detalles'];
-			$cont=1;
-			foreach($detalles as $detalle) {
-				$_fk_producto = $detalle['id_producto'];
-				if(intval($_fk_producto) <= 0){
-					$respuesta=new Response();
-					$respuesta->state=$this->model->transaction->regresaTransaccion(); 
-					$respuesta->SetResponse(false,"Producto $cont incorrecto");
-					return $response->withJson($respuesta);
-				}
-				$cont++;
-                $_cantidad = $detalle['cantidad'];
-                $_peso = $detalle['peso'];
-                $_importe = $detalle['importe'];
-				$produc = $this->model->producto->get($_fk_producto);
-				$stockCaja = $this->model->producto->getStock($_fk_producto, $_usuario)->final;
-				if($stockCaja < $_cantidad){
-					$produc->state=$this->model->transaction->regresaTransaccion();
-					$produc->setResponse(false,'No hay suficiente stock para '.$produc->result->descripcion);
-					unset($produc->result);
-					return $response->withJson($produc);
-				}
-				$detdata = [
-					'fk_venta'=>$_fk_venta,
-					'fk_producto'=>$_fk_producto,
-					'cantidad'=>$_cantidad,
-					'peso'=>$_peso,
-					'importe'=>$_importe
+			if(!isset($_SESSION['usuario'])){
+				$respuesta=new Response();
+				$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+				$respuesta->SetResponse(false,"Expiro sesión");
+				$respuesta->sesion = 0;
+				return $response->withJson($respuesta);
+			}else{
+				$parsedBody = $request->getParsedBody();
+				$fecha = date("Y-m-d");
+				$_peso_total = $parsedBody['peso_total'];
+				$tipo = $parsedBody['tipo'];
+				$institucion = '';//$parsedBody['institucion'];
+				$_usuario = $parsedBody['fk_usuario'];
+				$_total = $parsedBody['total'];
+				$beneficiario = $parsedBody['beneficiario'];
+				$data = [
+					'peso_total'=>$_peso_total,
+					'tipo'=>$tipo,
+					'institucion'=>$institucion,
+					'fk_usuario'=>$_usuario,
+					'total'=>$_total,
+					'beneficiario'=>$beneficiario
 				];
-                $result = $this->model->det_venta->add($detdata);
-				if($result->response){
-					$edit_stock = $this->model->producto->stockTienditaRest($_cantidad, $_fk_producto);
-					if($edit_stock->response) {
-						$add_kardex = $this->model->kardex_tiendita->addKardex($_fk_producto, $_cantidad, $_usuario, '-1');
-						if($add_kardex->response) {
-							$this->model->kardex_tiendita->arreglaKardex($_fk_producto, date('Y-m-d'), $_usuario);
+				$resVenta =  $this->model->venta->add($data);
+				$_fk_venta = $resVenta->result;
+				if($_fk_venta){
+					$seg_log = $this->model->seg_log->add('Agregar venta', $_fk_venta, 'venta_tiendita'); 
+						if(!$seg_log->response) {
+							$seg_log->state = $this->model->transaction->regresaTransaccion(); 
+							return $response->withJson($seg_log);
+						}
+				}
+				$detalles = $parsedBody['detalles'];
+				$cont=1;
+				foreach($detalles as $detalle) {
+					$_fk_producto = $detalle['id_producto'];
+					if(intval($_fk_producto) <= 0){
+						$respuesta=new Response();
+						$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+						$respuesta->SetResponse(false,"Producto $cont incorrecto");
+						return $response->withJson($respuesta);
+					}
+					$cont++;
+					$_cantidad = $detalle['cantidad'];
+					$_peso = $detalle['peso'];
+					$_importe = $detalle['importe'];
+					$produc = $this->model->producto->get($_fk_producto);
+					$stockCaja = $this->model->producto->getStock($_fk_producto, $_usuario)->final;
+					if($stockCaja < $_cantidad){
+						$produc->state=$this->model->transaction->regresaTransaccion();
+						$produc->setResponse(false,'No hay suficiente stock para '.$produc->result->descripcion);
+						unset($produc->result);
+						return $response->withJson($produc);
+					}
+					$detdata = [
+						'fk_venta'=>$_fk_venta,
+						'fk_producto'=>$_fk_producto,
+						'cantidad'=>$_cantidad,
+						'peso'=>$_peso,
+						'importe'=>$_importe
+					];
+					$result = $this->model->det_venta->add($detdata);
+					if($result->response){
+						$edit_stock = $this->model->producto->stockTienditaRest($_cantidad, $_fk_producto);
+						if($edit_stock->response) {
+							$add_kardex = $this->model->kardex_tiendita->addKardex($_fk_producto, $_cantidad, $_usuario, '-1');
+							if($add_kardex->response) {
+								$this->model->kardex_tiendita->arreglaKardex($_fk_producto, date('Y-m-d'), $_usuario);
+							}else{
+								$add_kardex->state=$this->model->transaction->regresaTransaccion();
+								return $response->withJson($add_kardex);
+							}
 						}else{
-							$add_kardex->state=$this->model->transaction->regresaTransaccion();
-							return $response->withJson($add_kardex);
+							$edit_stock->state=$this->model->transaction->regresaTransaccion();
+							return $response->withJson($edit_stock);
 						}
 					}else{
-						$edit_stock->state=$this->model->transaction->regresaTransaccion();
-						return $response->withJson($edit_stock);
+						$result->state=$this->model->transaction->regresaTransaccion();
+						return $response->withJson($result);
 					}
-				}else{
-					$result->state=$this->model->transaction->regresaTransaccion();
-					return $response->withJson($result);
 				}
+				$resVenta->state=$this->model->transaction->confirmaTransaccion();
+				return $response->withJson($resVenta);
 			}
-			$resVenta->state=$this->model->transaction->confirmaTransaccion();
-			return $response->withJson($resVenta);
 		});
 
 		// Editar venta
@@ -381,49 +397,57 @@
 		$this->put('delDetalleVenta/{id}', function($request, $response, $arguments) {
 			require_once './core/defines.php';
 			$this->model->transaction->iniciaTransaccion();
-			$del_det_venta = $this->model->det_venta->getById($arguments['id']);
-			$cant = $del_det_venta->cantidad;
-			$fecha = substr($del_det_venta->fecha,0,10);
-			$cajero = $del_det_venta->cajero;
-			$venta = $del_det_venta->fk_venta;
-			$prod = $del_det_venta->fk_producto;
-			$del_detventa = $this->model->det_venta->del($arguments['id']);
-			if($del_detventa->response){
-				$stocktienditasum = $this->model->producto->stockTienditaSum($cant, $prod);
-				if(!$stocktienditasum->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($stocktienditasum); 
-				}
-				$salidasrest = $this->model->kardex_tiendita->salidasRest($cant, $prod, $fecha, $cajero);
-				if(!$salidasrest->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($salidasrest); 
-				}
-				$this->model->kardex_tiendita->arreglaKardex($prod, $fecha, $cajero);
-				$PesoTotal = $this->model->det_venta->getPesoTotal($venta)->peso_total;
-                $Total = $this->model->det_venta->getTotal($venta)->total;
-                $data = [
-					'peso_total'=>$PesoTotal,
-					'total'=>$Total
-				];
-                $edit = $this->model->venta->edit($data, $venta); 
-				if($edit->response) {
-					$seg_log = $this->model->seg_log->add('Baja de det_venta', $arguments['id'], 'det_venta'); 
-					if(!$seg_log->response) {
-						$seg_log->state = $this->model->transaction->regresaTransaccion(); 
-						return $response->withJson($seg_log);
+			if(!isset($_SESSION['usuario'])){
+				$respuesta=new Response();
+				$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+				$respuesta->SetResponse(false,"Expiro sesión");
+				$respuesta->sesion = 0;
+				return $response->withJson($respuesta);
+			}else{
+				$del_det_venta = $this->model->det_venta->getById($arguments['id']);
+				$cant = $del_det_venta->cantidad;
+				$fecha = substr($del_det_venta->fecha,0,10);
+				$cajero = $del_det_venta->cajero;
+				$venta = $del_det_venta->fk_venta;
+				$prod = $del_det_venta->fk_producto;
+				$del_detventa = $this->model->det_venta->del($arguments['id']);
+				if($del_detventa->response){
+					$stocktienditasum = $this->model->producto->stockTienditaSum($cant, $prod);
+					if(!$stocktienditasum->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($stocktienditasum); 
+					}
+					$salidasrest = $this->model->kardex_tiendita->salidasRest($cant, $prod, $fecha, $cajero);
+					if(!$salidasrest->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($salidasrest); 
+					}
+					$this->model->kardex_tiendita->arreglaKardex($prod, $fecha, $cajero);
+					$PesoTotal = $this->model->det_venta->getPesoTotal($venta)->peso_total;
+					$Total = $this->model->det_venta->getTotal($venta)->total;
+					$data = [
+						'peso_total'=>$PesoTotal,
+						'total'=>$Total
+					];
+					$edit = $this->model->venta->edit($data, $venta); 
+					if($edit->response) {
+						$seg_log = $this->model->seg_log->add('Baja de det_venta', $arguments['id'], 'det_venta'); 
+						if(!$seg_log->response) {
+							$seg_log->state = $this->model->transaction->regresaTransaccion(); 
+							return $response->withJson($seg_log);
+						}
+					}else{
+						$this->model->transaction->regresaTransaccion(); 
+						return $response->withJson($edit); 
 					}
 				}else{
 					$this->model->transaction->regresaTransaccion(); 
-					return $response->withJson($edit); 
-				}
-			}else{
-				$this->model->transaction->regresaTransaccion(); 
-				return $response->withJson($del_detventa); 
-			}	
-			$del_detventa->result = null;			
-			$this->model->transaction->confirmaTransaccion();
-			return $response->withJson($del_detventa);
+					return $response->withJson($del_detventa); 
+				}	
+				$del_detventa->result = null;			
+				$this->model->transaction->confirmaTransaccion();
+				return $response->withJson($del_detventa);
+			}
 		});
 
 		// Obtener beneficiario por credencial
