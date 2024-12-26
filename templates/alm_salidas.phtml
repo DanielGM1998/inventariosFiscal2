@@ -78,7 +78,7 @@
 												</span>
 											</div>
 											<select class="form-control form-control-sm" id="item-fk_cliente">
-											<?php $clientes = $todo->model->cliente->getAll(0,100,'_')->result; 
+											<?php $clientes = $todo->model->cliente->getAll(0,500,'_')->result; 
 												foreach($clientes as $cli): ?>
 												<option value="<?= $cli->id_cliente ?>"><?= $cli->nombre.' '.$cli->apellidos ?></option>
 											<?php endforeach; ?>
