@@ -20,35 +20,43 @@
         // Cancelar salida_produccion
 		$this->put('cancel/{salida}', function($request, $response, $arguments) {
 			$this->model->transaction->iniciaTransaccion();
-			$infoSalida = $this->model->salida_produccion->get($arguments['salida'])->result->fecha;
-            $fechaSalida = substr($infoSalida, 0,10);
-            $detSalid = $this->model->det_salida_produccion->getBySalida($arguments['salida'])->result;
-            $count=count($detSalid);
-            for($x=0;$x<$count;$x++){
-                $cant = $detSalid[$x]->cantidad;
-                $prod = $detSalid[$x]->fk_producto;
-                $stockproduccionsum = $this->model->producto->stockProduccionSum($cant, $prod);
-				if(!$stockproduccionsum->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($stockproduccionsum); 
+			if(!isset($_SESSION['usuario'])){
+				$respuesta=new Response();
+				$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+				$respuesta->SetResponse(false,"Expiro sesión");
+				$respuesta->sesion = 0;
+				return $response->withJson($respuesta);
+			}else{
+				$infoSalida = $this->model->salida_produccion->get($arguments['salida'])->result->fecha;
+				$fechaSalida = substr($infoSalida, 0,10);
+				$detSalid = $this->model->det_salida_produccion->getBySalida($arguments['salida'])->result;
+				$count=count($detSalid);
+				for($x=0;$x<$count;$x++){
+					$cant = $detSalid[$x]->cantidad;
+					$prod = $detSalid[$x]->fk_producto;
+					$stockproduccionsum = $this->model->producto->stockProduccionSum($cant, $prod);
+					if(!$stockproduccionsum->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($stockproduccionsum); 
+					}
+					$salidasrest = $this->model->kardex_produccion->salidasRest($cant, $prod, $fechaSalida);
+					if(!$salidasrest->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($salidasrest); 
+					}
+					$this->model->kardex_produccion->arreglaKardex($prod, $fechaSalida);
 				}
-                $salidasrest = $this->model->kardex_produccion->salidasRest($cant, $prod, $fechaSalida);
-				if(!$salidasrest->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($salidasrest); 
+				$CancelaSalida=$this->model->salida_produccion->del($arguments['salida']);
+				if($CancelaSalida){
+					$seg_log = $this->model->seg_log->add('Cancelar salida_produccion',$arguments['salida'], 'salida_produccion'); 
+							if(!$seg_log->response) {
+								$this->model->transaction->regresaTransaccion(); 
+								return $response->withJson($seg_log);
+							}
 				}
-				$this->model->kardex_produccion->arreglaKardex($prod, $fechaSalida);
-            }
-            $CancelaSalida=$this->model->salida_produccion->del($arguments['salida']);
-			if($CancelaSalida){
-				$seg_log = $this->model->seg_log->add('Cancelar salida_produccion',$arguments['salida'], 'salida_produccion'); 
-						if(!$seg_log->response) {
-							$this->model->transaction->regresaTransaccion(); 
-							return $response->withJson($seg_log);
-						}
+				$this->model->transaction->confirmaTransaccion();
+				return $response->withJson($CancelaSalida);
 			}
-			$this->model->transaction->confirmaTransaccion();
-			return $response->withJson($CancelaSalida);
 		});
 
         // Agregar salida_produccion
@@ -63,96 +71,105 @@
 				'destino'=>$_fk_cliente,
 				'peso_total'=>$_peso_total
 			];
-			$resSalida =  $this->model->salida_produccion->add($data);
-            $_fk_salida = $resSalida->result;
-			if($_fk_salida){
-				$seg_log = $this->model->seg_log->add('Agregar salida_produccion',$_fk_salida, 'salida_produccion'); 
-						if(!$seg_log->response) {
-							$this->model->transaction->regresaTransaccion(); 
-							return $response->withJson($seg_log);
-						}
-			}
-			if(!$_fk_salida){
-				$this->model->transaction->regresaTransaccion();
-				return $response->withJson($_fk_salida);
-			}
-			$detalles = $parsedBody['detalles'];
-			$cont=1;
-			foreach($detalles as $detalle) {
-				$_fk_producto = $detalle['id_producto'];
-				if(intval($_fk_producto) <= 0){
-					$respuesta=new Response();
-					$respuesta->state=$this->model->transaction->regresaTransaccion(); 
-					$respuesta->SetResponse(false,"Producto $cont incorrecto");
-					return $response->withJson($respuesta);
+
+			if(!isset($_SESSION['usuario'])){
+				$respuesta=new Response();
+				$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+				$respuesta->SetResponse(false,"Expiro sesión");
+				$respuesta->sesion = 0;
+				return $response->withJson($respuesta);
+			}else{
+				$resSalida =  $this->model->salida_produccion->add($data);
+				$_fk_salida = $resSalida->result;
+				if($_fk_salida){
+					$seg_log = $this->model->seg_log->add('Agregar salida_produccion',$_fk_salida, 'salida_produccion'); 
+							if(!$seg_log->response) {
+								$this->model->transaction->regresaTransaccion(); 
+								return $response->withJson($seg_log);
+							}
 				}
-				$cont++;
-                $_cantidad = $detalle['cantidad'];
-                $_peso = $detalle['peso'];
-				$produc = $this->model->producto->get($_fk_producto);
-				if($produc->result->stock_produccion < $_cantidad){
+				if(!$_fk_salida){
 					$this->model->transaction->regresaTransaccion();
-					$produc->setResponse(false,'No hay suficiente stock para '.$produc->result->descripcion);
-					unset($produc->result);
-					return $response->withJson($produc);
+					return $response->withJson($_fk_salida);
 				}
-				$stock = $this->model->kardex_produccion->kardexByDate($fecha, $_fk_producto);
-				if($stock=='0'){
-                    $_inicial = '0';
-					$_final = '0';
-					$kardexinicial = $this->model->kardex_produccion->kardexInicial($fecha, $_fk_producto);
-                    if($kardexinicial!='0'){
-						$_inicial = $kardexinicial;
+				$detalles = $parsedBody['detalles'];
+				$cont=1;
+				foreach($detalles as $detalle) {
+					$_fk_producto = $detalle['id_producto'];
+					if(intval($_fk_producto) <= 0){
+						$respuesta=new Response();
+						$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+						$respuesta->SetResponse(false,"Producto $cont incorrecto");
+						return $response->withJson($respuesta);
 					}
-					$kardexfinal = $this->model->kardex_produccion->kardexFinal($fecha, $_fk_producto);
-                    if($kardexfinal!='0'){
-						$_final = $kardexfinal;
+					$cont++;
+					$_cantidad = $detalle['cantidad'];
+					$_peso = $detalle['peso'];
+					$produc = $this->model->producto->get($_fk_producto);
+					if($produc->result->stock_produccion < $_cantidad){
+						$this->model->transaction->regresaTransaccion();
+						$produc->setResponse(false,'No hay suficiente stock para '.$produc->result->descripcion);
+						unset($produc->result);
+						return $response->withJson($produc);
 					}
-                    if($_final == '0') { $_final = $_inicial; }
-                    $dataKardex = [
-                        'fk_producto'=>$_fk_producto,
-                        'inicial'=>$_inicial,
-                        'entradas'=>'0',
-                        'salidas'=>'0',
-                        'final'=>$_final
-                    ];
-                    $new_kardex = $this->model->kardex_produccion->add($dataKardex);
-                    if(!$new_kardex->response) {
-                        $this->model->transaction->regresaTransaccion();
-                        return $response->withJson($new_kardex); 
-                    }
-                }
-				$edit_producto = $this->model->producto->stockProduccionRest($_cantidad, $_fk_producto);
-				if($edit_producto->response) {
-					$edit_kardex = $this->model->kardex_produccion->salidasSum($_cantidad, $_fk_producto, $fecha);
-					if($edit_kardex->response) {
-						$dataDetEntr = [
-							'fk_salida'=>$_fk_salida,
+					$stock = $this->model->kardex_produccion->kardexByDate($fecha, $_fk_producto);
+					if($stock=='0'){
+						$_inicial = '0';
+						$_final = '0';
+						$kardexinicial = $this->model->kardex_produccion->kardexInicial($fecha, $_fk_producto);
+						if($kardexinicial!='0'){
+							$_inicial = $kardexinicial;
+						}
+						$kardexfinal = $this->model->kardex_produccion->kardexFinal($fecha, $_fk_producto);
+						if($kardexfinal!='0'){
+							$_final = $kardexfinal;
+						}
+						if($_final == '0') { $_final = $_inicial; }
+						$dataKardex = [
 							'fk_producto'=>$_fk_producto,
-							'cantidad'=>$_cantidad,
-							'peso'=>$_peso
+							'inicial'=>$_inicial,
+							'entradas'=>'0',
+							'salidas'=>'0',
+							'final'=>$_final
 						];
-						$add_detalle = $this->model->det_salida_produccion->add($dataDetEntr);
-						if(!$add_detalle->response) {
+						$new_kardex = $this->model->kardex_produccion->add($dataKardex);
+						if(!$new_kardex->response) {
 							$this->model->transaction->regresaTransaccion();
-							return $response->withJson($add_detalle); 
+							return $response->withJson($new_kardex); 
+						}
+					}
+					$edit_producto = $this->model->producto->stockProduccionRest($_cantidad, $_fk_producto);
+					if($edit_producto->response) {
+						$edit_kardex = $this->model->kardex_produccion->salidasSum($_cantidad, $_fk_producto, $fecha);
+						if($edit_kardex->response) {
+							$dataDetEntr = [
+								'fk_salida'=>$_fk_salida,
+								'fk_producto'=>$_fk_producto,
+								'cantidad'=>$_cantidad,
+								'peso'=>$_peso
+							];
+							$add_detalle = $this->model->det_salida_produccion->add($dataDetEntr);
+							if(!$add_detalle->response) {
+								$this->model->transaction->regresaTransaccion();
+								return $response->withJson($add_detalle); 
+							}else{
+								$edit_next_kardex = $this->model->kardex_produccion->inicialfinalRest($_cantidad, $_fk_producto, $fecha);
+								if($edit_next_kardex->response) {
+									$this->model->kardex_produccion->arreglaKardex($_fk_producto, $fecha);   
+								}
+							}
 						}else{
-							$edit_next_kardex = $this->model->kardex_produccion->inicialfinalRest($_cantidad, $_fk_producto, $fecha);
-							if($edit_next_kardex->response) {
-								$this->model->kardex_produccion->arreglaKardex($_fk_producto, $fecha);   
-                        	}
+							$this->model->transaction->regresaTransaccion();
+							return $response->withJson($edit_kardex);
 						}
 					}else{
-                        $this->model->transaction->regresaTransaccion();
-						return $response->withJson($edit_kardex);
-                    }
-				}else{
-                    $this->model->transaction->regresaTransaccion();
-					return $response->withJson($edit_producto);
-                }
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($edit_producto);
+					}
+				}
+				$this->model->transaction->confirmaTransaccion();
+				return $response->withJson($resSalida);
 			}
-			$this->model->transaction->confirmaTransaccion();
-			return $response->withJson($resSalida);
 		});
 
         // Editar salida_produccion
@@ -283,46 +300,54 @@
 		$this->put('delDetalleSalida/{id}', function($request, $response, $arguments) {
 			require_once './core/defines.php';
 			$this->model->transaction->iniciaTransaccion();
-			$del_det_salida = $this->model->det_salida_produccion->getById($arguments['id']);
-			$cant = $del_det_salida->cantidad;
-			$fecha = substr($del_det_salida->fecha,0,10);
-			$salida = $del_det_salida->fk_salida;
-			$prod = $del_det_salida->fk_producto;
-			$del_detsalida = $this->model->det_salida_produccion->del($arguments['id']);
-            if($del_detsalida->response){
-                $stockproduccionsum = $this->model->producto->stockProduccionSum($cant, $prod);
-				if(!$stockproduccionsum->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($stockproduccionsum); 
-				}
-                $salidasrest = $this->model->kardex_produccion->salidasRest($cant, $prod, $fecha);
-				if(!$salidasrest->response){
-					$this->model->transaction->regresaTransaccion();
-					return $response->withJson($salidasrest); 
-				}
-				$this->model->kardex_produccion->arreglaKardex($prod, $fecha);
-                $PesoTotal = $this->model->det_salida_produccion->getPesoTotal($salida)->peso_total;
-                $data = [
-					'peso_total'=>$PesoTotal
-				];
-                $edit = $this->model->salida_produccion->edit($data, $salida); 
-                if($edit->response) {
-					$seg_log = $this->model->seg_log->add('Baja de det_salida_produccion', $arguments['id'], 'det_salida_produccion'); 
-					if(!$seg_log->response) {
-						$seg_log->state = $this->model->transaction->regresaTransaccion(); 
-						return $response->withJson($seg_log);
+			if(!isset($_SESSION['usuario'])){
+				$respuesta=new Response();
+				$respuesta->state=$this->model->transaction->regresaTransaccion(); 
+				$respuesta->SetResponse(false,"Expiro sesión");
+				$respuesta->sesion = 0;
+				return $response->withJson($respuesta);
+			}else{
+				$del_det_salida = $this->model->det_salida_produccion->getById($arguments['id']);
+				$cant = $del_det_salida->cantidad;
+				$fecha = substr($del_det_salida->fecha,0,10);
+				$salida = $del_det_salida->fk_salida;
+				$prod = $del_det_salida->fk_producto;
+				$del_detsalida = $this->model->det_salida_produccion->del($arguments['id']);
+				if($del_detsalida->response){
+					$stockproduccionsum = $this->model->producto->stockProduccionSum($cant, $prod);
+					if(!$stockproduccionsum->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($stockproduccionsum); 
+					}
+					$salidasrest = $this->model->kardex_produccion->salidasRest($cant, $prod, $fecha);
+					if(!$salidasrest->response){
+						$this->model->transaction->regresaTransaccion();
+						return $response->withJson($salidasrest); 
+					}
+					$this->model->kardex_produccion->arreglaKardex($prod, $fecha);
+					$PesoTotal = $this->model->det_salida_produccion->getPesoTotal($salida)->peso_total;
+					$data = [
+						'peso_total'=>$PesoTotal
+					];
+					$edit = $this->model->salida_produccion->edit($data, $salida); 
+					if($edit->response) {
+						$seg_log = $this->model->seg_log->add('Baja de det_salida_produccion', $arguments['id'], 'det_salida_produccion'); 
+						if(!$seg_log->response) {
+							$seg_log->state = $this->model->transaction->regresaTransaccion(); 
+							return $response->withJson($seg_log);
+						}
+					}else{
+						$this->model->transaction->regresaTransaccion(); 
+						return $response->withJson($edit); 
 					}
 				}else{
 					$this->model->transaction->regresaTransaccion(); 
-					return $response->withJson($edit); 
+					return $response->withJson($del_detsalida); 
 				}
-            }else{
-                $this->model->transaction->regresaTransaccion(); 
-				return $response->withJson($del_detsalida); 
-            }
-			$del_detsalida->result = null;            
-			$this->model->transaction->confirmaTransaccion();
-			return $response->withJson($del_detsalida);
+				$del_detsalida->result = null;            
+				$this->model->transaction->confirmaTransaccion();
+				return $response->withJson($del_detsalida);
+			}
 		});
 
         // Obtener reporte entre fechas

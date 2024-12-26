@@ -190,6 +190,8 @@
 									if(resp.response) {
 										trp.remove();
 										swal({ type:"success", title:"¡Listo!", text:"Se cancelo la entrada", timer:4000 });
+									}else if(resp.sesion == 0){
+										window.location.href = '<?= URL_ROOT ?>/usuario/logout';
 									} else { swal({ type:"warning", title:"Oops!", text:resp.message, timer:4000 });  }
 									$.unblockUI();
 								}
@@ -233,6 +235,8 @@
 								$('#item-id').val(0);
 								$('#frm-item').modal('hide');
 								swal({ type: "success", title: "¡Listo!", text: "Se guardaron los datos correctamente.", timer: 4000 });
+							}else if(resp.sesion == 0){
+								window.location.href = '<?= URL_ROOT ?>/usuario/logout';
 							} else { swal({ type: "warning", title: "Oops!", text: resp.message, timer: 4000 }); }
 							$.unblockUI();
 						},'json');
@@ -433,6 +437,8 @@
 											trp.remove();
 											calcTotNva();
 											swal({ type:"success", title:"¡Listo!", text:"Se eliminó el producto de la entrada", timer:4000 });
+										}else if(resp.sesion == 0){
+											window.location.href = '<?= URL_ROOT ?>/usuario/logout';
 										} else { swal({ type:"warning", title:"Oops!", text:resp.message, timer:4000 });  }
 										$.unblockUI();
 									}
